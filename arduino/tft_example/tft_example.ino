@@ -1,6 +1,6 @@
 #include <Adafruit_ST7735.h>        // Hardware-specific library for ST7735 TFT displays
 #include "guitar.h"
-// TFT Display Ports for OS2024 Badge
+// TFT Display Ports for OS2026 Badge
 #define TFT_CS     10
 #define TFT_RST    8  
 #define TFT_DC     13
