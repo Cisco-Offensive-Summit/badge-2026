@@ -21,3 +21,15 @@ Upload Speed "115200"
 USB Mode "Hardware CDC and JTAG"  
 Zigbee Mode: "Disabled"  
 Programmer "Esptool"  
+
+Libraries:
+(Tools --> Manage Libraries --> )
+Adafruit_BusIO  
+Adafruit_ST7735_and_ST7789_Library  
+FastLED  
+Adafruit_GFX_Library  
+PDLS_BASIC  
+PDLS_Common  
+Pervasive_Wide_Small  
+
+
