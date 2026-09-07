@@ -2,7 +2,7 @@
 
 Dense reference for writing apps for the Offensive Summit 2026 badge. Every API
 signature and behavior below was verified against `src/badge/` and `src/apps/`.
-For prose-style introductions see the [wiki](../../badge-2026-wiki/Apps.md); for
+For prose-style introductions see the [wiki](https://github.com/Cisco-Offensive-Summit/badge-2026/wiki/Apps); for
 module-by-module APIs see [BADGE_MODULES.md](BADGE_MODULES.md) and
 [LIB_MODULES.md](LIB_MODULES.md).
 
@@ -261,6 +261,10 @@ center_label_x_plane(LCD, lb)
 Compose the two axes by nesting, since each returns the label:
 `center_text_y_plane(EPD, center_text_x_plane(EPD, "Hi", scale=3))`.
 
+`wrap_message()` preserves explicit newline breaks, wraps text to the available
+screen width from `x`, and splits long unbroken words such as file paths so they
+stay on-panel.
+
 For `round_button`, `x` is the left edge of the *text* and `y` its vertical
 center; the rounded rect is derived outward by `rad`. Labels near the right edge
 need manual nudging — see the `NUDGE` comment in `apps/blink/code.py` for a
@@ -360,13 +364,16 @@ except Exception as e:
 ```
 
 `post_to_leaderboard` draws its own UI and needs WiFi, a valid `UNIQUE_ID`, and
-the app registered in the online service's `BadgeApp` table. Submissions carry an
+the app registered in the server's `BadgeApp` table. Submissions carry an
 anti-cheat hash of the app source, so a locally modified app is flagged as
 cheating. A failed post must never end the game — wrap it, as `apps/simon` does.
 
 ---
 
 ## 8. Available Libraries
+
+Do not add dependencies. Per the repo rules, any new library needs operator
+approval.
 
 **Frozen into firmware** (`mpconfigboard.mk`): `adafruit_display_text`,
 `adafruit_display_shapes`, `adafruit_requests`, `adafruit_bus_device`,
@@ -432,7 +439,7 @@ Ordered roughly by how much time each one costs when hit.
 
 9. **Socket exhaustion is not self-healing.** Eight sockets, leaked pools, and
    unclosed responses (§6) produce failures that persist until a reset and look
-   like online service problems.
+   like server problems.
 
 10. **`sys.exit()` leaves boot config applied.** Use `microcontroller.reset()`.
 
@@ -555,7 +562,7 @@ survives a crash and a power loss.
 
 Prefer `mpremote run` for throwaway test scripts so CIRCUITPY is never mounted.
 If it *is* mounted on the badge-jumper Pi, `sync` and `umount` before any reset —
-avoid having both USB mass storage and badge code write to CIRCUITPY at the same time. Two writers on one FAT volume can corrupt it.
+see the repo `AGENTS.md` RULE 2. Two writers on one FAT volume corrupts it.
 
 ---
 
@@ -566,7 +573,7 @@ avoid having both USB mass storage and badge code write to CIRCUITPY at the same
 | `apps/blink` | Event decorators, explicit task control, correct `interval` handling, EPD button labels |
 | `apps/hello` | Light-sleep input model, socket/session hygiene, recoverable network errors, custom font loading |
 | `apps/simon` | Async game loop, NeoPixel feedback, non-fatal leaderboard submission |
-| `apps/register` | WiFi + online service API, QR display, pin-alarm wake |
+| `apps/register` | WiFi + server API, QR display, pin-alarm wake |
 | `apps/appStore` | Multi-page UI, file download and install, app deletion |
 
 ---

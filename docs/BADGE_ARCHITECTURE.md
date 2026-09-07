@@ -125,7 +125,7 @@ boot.py
   │   ├── S4+S6 → OTA update
   │   └── S5+S6 → Re-provision token
   ├── Check for UNIQUE_ID in secrets.py
-  │   └── If missing → run get_token.py → request from online service
+  │   └── If missing → run get_token.py → request from server
   ├── Read NVM boot config
   └── Apply filesystem options (mount_root_rw, disable_usb_drive)
   │
@@ -230,7 +230,7 @@ A reusable scrollable selection list UI component is available via the `scrollab
 
 ### WiFi Communication
 
-The `WIFI` class manages WiFi connection, HTTPS session creation, and online communication. It handles WiFi connection with retry attempts, socket pool management, SSL context, and provides status feedback on the LCD during connection. For the complete `WIFI` class API (constructor parameters, properties, methods, custom exceptions) see [Badge Hardware Modules](BADGE_MODULES.md#wifipy).
+The `WIFI` class manages WiFi connection, HTTPS session creation, and server communication. It handles WiFi connection with retry attempts, socket pool management, SSL context, and provides status feedback on the LCD during connection. For the complete `WIFI` class API (constructor parameters, properties, methods, custom exceptions) see [Badge Hardware Modules](BADGE_MODULES.md#wifipy).
 
 ```python
 wifi = WIFI()
@@ -245,7 +245,7 @@ if wifi.connect_wifi():
 
 ### File Download and Storage Sync
 
-The `utils` module provides a legacy `download_file()` function that streams App Store files from `/badge/download` in 8 KB chunks and creates directories as needed. The `storage_sync` module provides the Storage app's `/badge/storage/*` backup and restore workflows, including SHA-256 manifests, bytecode/cache ignore rules, text/base64 upload, streamed restore downloads, and progress callbacks. See [Badge Hardware Modules](BADGE_MODULES.md#utilspy), [Badge Hardware Modules](BADGE_MODULES.md#storage_syncpy), and [Storage Transfer Module](apps/storage-transfer.md) for details.
+The `utils` module provides a legacy `download_file()` function that streams App Store files from `/badge/download` in 8 KB chunks and creates directories as needed. The `storage_sync` module provides the Storage app's `/badge/storage/*` backup and restore workflows, including SHA-256 manifests, default `.mpy` skipping with user opt-in, bytecode/cache ignore rules, text/base64 upload, streamed restore downloads, transfer progress callbacks, and phase status callbacks for long-running scan/hash/server-check steps. See [Badge Hardware Modules](BADGE_MODULES.md#utilspy), [Badge Hardware Modules](BADGE_MODULES.md#storage_syncpy), and [Storage Transfer Module](apps/storage-transfer.md) for details.
 
 ### Shared Badge Modules
 
@@ -257,13 +257,13 @@ When a helper under `src/apps/<app_name>/` grows beyond app-specific behavior, e
 
 ### `secrets.py`
 
-Per-badge file with WiFi credentials, service URL, and the badge's unique ID:
+Per-badge file with WiFi credentials, server URL, and the badge's unique ID:
 
 ```python
 WIFI_NETWORK = "os2025-badge"
 WIFI_PASS    = "supersecretpassword"
 HOST_ADDRESS = 'https://badger.becomingahacker.com/'
-UNIQUE_ID = '<provisioning_token>'  # Added by get_token.py
+UNIQUE_ID = '<token_from_server>'  # Added by get_token.py
 ```
 
 ### `badge/constants.py`

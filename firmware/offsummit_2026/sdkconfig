@@ -1,0 +1,7 @@
+CONFIG_LWIP_LOCAL_HOSTNAME="espressif-esp32s3"
+
+# PSRAM is configured via CIRCUITPY_ESP_PSRAM_SIZE / _MODE / _FREQ in
+# mpconfigboard.mk, which pulls in esp-idf-config/sdkconfig-psram*.defaults.
+# Do not set CONFIG_SPIRAM_* by hand here -- the old commented-out block used
+# pre-S3 symbol names (CONFIG_ESP32S3_SPIRAM_SUPPORT, CONFIG_DEFAULT_PSRAM_*)
+# and had no effect.

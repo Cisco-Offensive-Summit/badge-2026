@@ -1,0 +1,5 @@
+[submodule "circuitpython"]
+	path = circuitpython
+	url = git@github.com:Cisco-Offensive-Summit/circuitpython.git
+	branch = badge-2026
+	ignore = all

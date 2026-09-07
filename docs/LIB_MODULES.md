@@ -13,11 +13,11 @@ Adafruit CircuitPython libraries (e.g., `adafruit_bitmap_font`, `adafruit_imagel
 | [`badge_nvm.py`](#badge_nvmpy) | Persistent key-value store using ESP32 non-volatile memory (NVM) |
 | [`memory_block.py`](#memory_blockpy) | Memory block allocator for NVM storage (doubly-linked list of free/used blocks) |
 | [`Base64Wrapper.py`](#base64wrapperpy) | Base64 encoding/decoding wrapper for serializing typed data into NVM |
-| [`get_token.py`](#get_tokenpy) | Badge provisioning — requests a `UNIQUE_ID` from the online service on first boot |
+| [`get_token.py`](#get_tokenpy) | Badge provisioning — requests a `UNIQUE_ID` from the server on first boot |
 | [`scrollable_list.py`](#scrollable_listpy) | Generic scrollable, highlight-based selection list UI for the LCD |
 | [`flavortext.py`](#flavortextpy) | Random humorous text generator (adapted from Zack Freedman's Singularitron) |
 | [`QRBitmap.py`](#qrbitmappy) | QR code bitmap generation (converts a QR matrix to a `displayio.Bitmap`) |
-| [`leaderboard.mpy`](#leaderboardmpy) | Score submission to the online service's leaderboard (frozen `.mpy`) |
+| [`leaderboard.mpy`](#leaderboardmpy) | Score submission to the server's leaderboard (frozen `.mpy`) |
 
 ---
 
@@ -212,13 +212,13 @@ print(w_bytes.get())       # b'\x01\x02\x03'
 
 ## get_token.py
 
-Badge provisioning script. Runs on first boot (or when manually triggered by holding S5+S6) to request a `UNIQUE_ID` from the online service. The `UNIQUE_ID` is the badge's secret key for online service authentication.
+Badge provisioning script. Runs on first boot (or when manually triggered by holding S5+S6) to request a `UNIQUE_ID` from the server. The `UNIQUE_ID` is the badge's secret key for all server authentication.
 
 ### Functions
 
 | Function | Signature | Description |
 |---|---|---|
-| `get_token` | `() -> bool` | Connect to WiFi, POST the badge's MAC address to `/badge/gen_token`, and append the returned `UNIQUE_ID` to `secrets.py`. Returns `True` on success. |
+| `get_token` | `() -> bool` | Connect to WiFi, POST the badge's MAC address to `/badge/gen_token`, and append the returned `UNIQUE_ID` to `secrets.py`, then delete `/provisioning_secret.txt`. Returns `True` on success. |
 | `connect_wifi` | `() -> bool` | Connect to WiFi using credentials from `secrets.py`. Tries 5 times. Returns `True` on success. |
 | `flash_red` | `(count)` | Flash all NeoPixels red `count` times, then leave them red. Used as visual error feedback. |
 
@@ -229,10 +229,11 @@ Badge provisioning script. Runs on first boot (or when manually triggered by hol
 3. Light NeoPixel 0 green (indicating start).
 4. Connect to WiFi (light NeoPixel 1 green on success).
 5. Create socket pool and HTTPS session (light NeoPixel 2 green).
-6. POST `{"mac_address": "..."}` to `/badge/gen_token` (light NeoPixel 3 green on HTTP 200).
+6. POST `{"mac_address": "..."}` to `/badge/gen_token` with `X-Badge-Provisioning-Secret` (light NeoPixel 3 green on HTTP 200).
 7. Parse the `uniqueID` from the response JSON.
 8. Append `UNIQUE_ID = '<token>'` to `/secrets.py`.
-9. On any failure, flash NeoPixels red.
+9. Delete `/provisioning_secret.txt` after the `UNIQUE_ID` write succeeds.
+10. On any failure, flash NeoPixels red; failed registration leaves `/provisioning_secret.txt` in place for retry.
 
 ### Usage Example
 
@@ -249,11 +250,12 @@ else:
 
 ### Key Behavior Notes
 
-- The module reads WiFi credentials and service URL from `secrets.py` at import time. If `secrets.py` is missing or incomplete, the module calls `exit()`.
+- The module reads WiFi credentials and server URL from `secrets.py` at import time. If `secrets.py` is missing or incomplete, the module calls `exit()`.
 - The MAC address is sent as a hex string (no colons).
 - The `UNIQUE_ID` is appended to `secrets.py` (not overwritten), so existing content is preserved.
 - NeoPixels provide visual feedback of each step: green = success, red = failure.
-- This provisioning endpoint is locked before the conference starts, so provisioning must happen beforehand.
+- This endpoint requires the temporary `/provisioning_secret.txt` value in the `X-Badge-Provisioning-Secret` header while token generation is enabled. The release build writes this file from `BADGE_PROVISIONING_SECRET`, and `get_token.py` deletes it only after successfully appending `UNIQUE_ID`.
+- This endpoint is locked on the server before the conference starts, so provisioning must happen beforehand.
 
 ---
 
@@ -444,13 +446,13 @@ LCD.root_group = splash
 
 ## leaderboard.mpy
 
-Score submission module for the online service's leaderboard system. This module is frozen into the firmware as a `.mpy` file, so the source code is not available in the repository.
+Score submission module for the server's leaderboard system. This module is frozen into the firmware as a `.mpy` file, so the source code is not available in the repository.
 
 ### Functions
 
 | Function | Signature | Description |
 |---|---|---|
-| `post_to_leaderboard` | `(score)` | Submit a game score to the online service's `/badge/submit_score` endpoint. Includes the badge's `UNIQUE_ID` and a hash for anti-cheat verification. |
+| `post_to_leaderboard` | `(score)` | Submit a game score to the server's `/badge/submit_score` endpoint. Includes the badge's `UNIQUE_ID` and a hash for anti-cheat verification. |
 
 ### Usage Example
 
@@ -464,6 +466,6 @@ post_to_leaderboard(score)
 ### Key Behavior Notes
 
 - The score submission includes a hash that combines the score with other elements for anti-cheat verification. Modified apps will be flagged as cheaters.
-- The app must be registered in the online service's `BadgeApp` database table for the score to be accepted.
+- The app must be registered in the server's `BadgeApp` database table for the score to be accepted.
 - The badge must be connected to WiFi and have a valid `UNIQUE_ID` linked to a user account.
 - Since this is a frozen `.mpy` file, modifications require obtaining the source and recompiling with the CircuitPython build system.

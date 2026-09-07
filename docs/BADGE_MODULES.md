@@ -12,7 +12,7 @@ This document describes each module in the `src/badge/` directory. These modules
 | [`buttons.py`](#buttonspy) | GPIO button polling, press/release event generation |
 | [`events.py`](#eventspy) | Async event system (Event class, `@on` decorator, button events) |
 | [`neopixels.py`](#neopixelspy) | 4× WS2812 NeoPixel control |
-| [`wifi.py`](#wifipy) | WiFi connection, HTTPS session management, online communication |
+| [`wifi.py`](#wifipy) | WiFi connection, HTTPS session management, server communication |
 | [`storage_sync.py`](#storage_syncpy) | Server-backed badge storage backup/restore helpers |
 | [`launcher.py`](#launcherpy) | App launcher UI, app discovery, boot/NVM configuration, app lifecycle |
 | [`launcher_ui.py`](#launcher_uipy) | Alternative launcher UI components (legacy/experimental) |
@@ -48,7 +48,7 @@ Both displays share the same SPI bus but have separate CS, DC, and RST pins.
 | `center_text_y_plane` | `(screen, text_or_label, x=None, scale=1, color=WHITE)` | Create or adjust a `Label` so the text is vertically centered on the screen. Accepts a string or an existing Label. |
 | `center_label_x_plane` | `(screen, lb)` | Center an existing Label horizontally. The label's scale must be set before calling. |
 | `center_label_y_plane` | `(screen, lb)` | Center an existing Label vertically. The label's scale must be set before calling. |
-| `wrap_message` | `(screen, message, font=FONT, x=0, y=None, scale=1)` | Word-wrap text to fit the screen width. Returns a `Label` with wrapped text. |
+| `wrap_message` | `(screen, message, font=FONT, x=0, y=None, scale=1)` | Wrap text to fit the available screen width from `x`, preserving explicit newlines and splitting long unbroken words/paths. Returns a `Label` with wrapped text. |
 | `round_button` | `(label, x, y, rad, color=None, fill=None, stroke=1)` | Build a rounded-rectangle button `Group` around a `Label`. The group must be appended to a screen's root group. |
 | `set_background` | `(screen, color)` | Fill the entire screen with a solid color. Must be called before adding other elements (it replaces the root group). |
 | `epd_print_exception` | `(e)` | Print a truncated exception traceback to the E-Ink display. Useful for crash visibility since the E-Ink image persists without power. |
@@ -286,7 +286,7 @@ NP.fill(0x000000)
 
 ## wifi.py
 
-The `WIFI` class manages WiFi connection, HTTPS session creation, and provides a `requests` method for online communication.
+The `WIFI` class manages WiFi connection, HTTPS session creation, and provides a `requests` method for server communication.
 
 ### WIFI Class
 
@@ -300,14 +300,14 @@ WIFI(ssid=WIFI_NETWORK, passw=WIFI_PASS, host=HOST_ADDRESS, update=True)
 |---|---|---|
 | `ssid` | `WIFI_NETWORK` from `secrets.py` | WiFi network name. |
 | `passw` | `WIFI_PASS` from `secrets.py` | WiFi password. |
-| `host` | `HOST_ADDRESS` from `secrets.py` | Online service base URL. |
+| `host` | `HOST_ADDRESS` from `secrets.py` | Server base URL. |
 | `update` | `True` | Whether to display status messages on the LCD during connection. |
 
 #### Properties
 
 | Property | Type | Description |
 |---|---|---|
-| `host` | `str` | Online service base URL (e.g., `https://badger.becomingahacker.com/`). |
+| `host` | `str` | Server base URL (e.g., `https://badger.becomingahacker.com/`). |
 | `mac` | `str` | MAC address as colon-separated hex string (e.g., `AA:BB:CC:DD:EE:FF`). |
 | `ipv4` | `str` or `None` | IP address once connected, `None` before connection. |
 | `ssid` | `str` | WiFi SSID (with validation on setter). |
@@ -355,7 +355,7 @@ else:
 
 ### Key Behavior Notes
 
-- Always call `connect_wifi()` before making online requests — WiFi is not always on.
+- Always call `connect_wifi()` before making server requests — WiFi is not always on.
 - The LCD shows status messages during connection (e.g., "Connecting to Wifi", "Creating new SocketPool"). The screen is restored after connection.
 - `close_session()` is called internally before creating a new session in `get_new_session()`.
 - HTTPS is used with `ssl.create_default_context()`.
@@ -364,21 +364,21 @@ else:
 
 ## storage_sync.py
 
-Shared helpers for the Storage app's online backup and restore workflows. The module scans the badge filesystem, computes SHA-256 hashes, filters Python bytecode/cache artifacts, creates restore destination directories, and transfers files through the `/badge/storage/*` API.
+Shared helpers for the Storage app's server-backed backup and restore workflows. The module scans the badge filesystem, computes MD5 hashes for fast change detection on badge hardware, caches file hashes by size/mtime, filters `.mpy` files by default unless the user opts in, filters Python bytecode/cache artifacts, creates restore destination directories, reports optional LCD status updates for long-running phases, and transfers files through the `/badge/storage/*` API.
 
 ### Functions
 
 | Function | Description |
 |---|---|
-| `build_manifest(root="/")` | Return badge-relative file paths and SHA-256 hashes for local files. |
-| `backup_plan(wifi)` | Compare the local manifest with online storage and return local-only, online-only, and changed file lists. |
-| `backup(wifi, progress=None, start=None, error=None, delete_server=True, local_manifest=None, local_only=None, changed=None)` | Upload requested badge files and optionally reconcile online-service deletes. |
-| `restore_plan(wifi)` | Fetch the online service manifest, compare hashes locally, and return local-only, online-only, and changed file lists. |
-| `restore(wifi, progress=None, start=None, error=None, delete_local=False, local_only=None, server_only=None, changed=None)` | Download missing/changed online files and optionally delete badge-only files. |
-| `upload_file(wifi, path)` | Upload one text or base64 file to online badge storage. |
-| `download_file(wifi, path)` | Stream one online file to the badge and create parent directories as needed. |
+| `build_manifest(root="/", status=None, include_mpy=False)` | Return badge-relative file paths and MD5 hashes for local files, reusing `/.storage_manifest_cache.json` entries when size/mtime are unchanged, optionally reporting scan/hash status; skips `.mpy` files by default. |
+| `backup_plan(wifi, status=None, include_mpy=False)` | Compare the local manifest with server storage and return local-only, server-only, and changed file lists. |
+| `backup(wifi, progress=None, start=None, error=None, delete_server=True, local_manifest=None, local_only=None, changed=None, status=None, include_mpy=False)` | Upload requested badge files and optionally reconcile server-side deletes. |
+| `restore_plan(wifi, status=None, include_mpy=False)` | Fetch the server manifest, compare hashes locally, and return local-only, server-only, and changed file lists. |
+| `restore(wifi, progress=None, start=None, error=None, delete_local=False, local_only=None, server_only=None, changed=None, status=None, include_mpy=False)` | Download missing/changed server files and optionally delete badge-only files. |
+| `upload_file(wifi, path, expected_hash=None)` | Upload one text or base64 file to server badge storage, optionally reusing the manifest hash. |
+| `download_file(wifi, path)` | Stream one server file to the badge and create parent directories as needed. |
 | `delete_local_file(path)` | Delete one local badge file when destructive restore sync is confirmed. |
-| `is_ignored(path)` | Ignore `*.pyc`, `*.pyo`, and `__pycache__/` paths consistently. |
+| `is_ignored(path, include_mpy=False)` | Ignore `*.mpy` by default, plus `*.pyc`, `*.pyo`, and `__pycache__/` paths consistently. |
 
 See [Storage Transfer Module](apps/storage-transfer.md) for endpoint details and progress callback behavior.
 
@@ -561,14 +561,14 @@ Additional color constants. This module supplements `constants.py` with a few ex
 
 ## utils.py
 
-Utility functions for badge apps: QR code generation, file download from the online service, PWM pin listing, and directory creation.
+Utility functions for badge apps: QR code generation, file download from the server, PWM pin listing, and directory creation.
 
 ### Functions
 
 | Function | Signature | Description |
 |---|---|---|
 | `gen_qr_code` | `(data, screen)` | Generate a QR code from a string and display it centered on the given screen. Uses `adafruit_miniqr` with type 4 and error correction level L. |
-| `download_file` | `(file: str, wifi: WIFI) -> bool` | Download a file from the online service via the badge's `/badge/download` endpoint. Streams in 8 KB chunks. Creates directories as needed. Returns `True` on success, `False` on failure. |
+| `download_file` | `(file: str, wifi: WIFI) -> bool` | Download a file from the server via the badge's `/badge/download` endpoint. Streams in 8 KB chunks. Creates directories as needed. Returns `True` on success, `False` on failure. |
 | `ensure_dirs_exist` | `(path)` | Create all parent directories for a given file path. |
 | `list_pwm_pins` | `()` | Enumerate all board pins and test which support PWM output. Logs results. (Diagnostic utility.) |
 | `bitmap_QR` | `(matrix)` | Convert a QR code matrix to a `displayio.Bitmap` with a 2-pixel border. Used internally by `gen_qr_code`. |

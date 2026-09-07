@@ -1,0 +1,40 @@
+# Release image configuration.
+#
+# Non-secret settings only -- this file IS committed. WiFi credentials come from
+# an env file passed with `podman run --env-file <path>` and are never stored
+# here. See .pi/skills/build-release/SKILL.md.
+
+[release]
+version = "2026.1"
+
+# Default badge server. Override per build with BADGE_HOST_ADDRESS.
+host_address = "https://badge.offensivesummit.org/"
+
+[filesystem]
+# Files preloaded onto the badge's CIRCUITPY filesystem.
+# Paths are relative to src/. A trailing / copies the directory recursively.
+files = [
+    "code.py",
+    "boot.py",
+    "hello.json",
+    "badge/",
+    "img/",
+    "lib/",
+    # Required, not optional: apps/hello writes its downloaded typeface to
+    # font/custom_font.pcf and open(..., 'wb') fails if the directory is absent.
+    "font/",
+    # Preloaded apps. Matches the server's DEFAULT_OTA_APP_FOLDERS
+    # (badge-website/src/osAdmin/utils.py). Everything else is left to the
+    # App Store app.
+    "apps/appStore/",
+    "apps/corpo_breach/",
+    "apps/hello/",
+    "apps/register/",
+    "apps/schedule/",
+    "apps/storage/",
+]
+
+# NOT listed on purpose:
+#   secrets.py               - generated from the env file at build time
+#   provisioning_secret.txt - generated from BADGE_PROVISIONING_SECRET at build time
+#                             unless BADGE_PUBLIC_IMAGE=1 is set

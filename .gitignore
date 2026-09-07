@@ -1,0 +1,43 @@
+# --- Badge dev tooling ---
+.DS_Store
+build/
+.cache/
+.espressif/
+work/
+.build-state/
+
+# --- Web / server ---
+venv
+.env
+*.pyc
+*.DS_Store
+*.bak
+src/site.db*
+src/site.db
+instance/*
+src/static/downloads/apps
+src/static/downloads/apps/*
+src/static/downloads
+src/static/downloads/*
+CERTS/.certbot/logs/*
+CERTS/badger.becomingahacker.com
+CERTS/.certbot/config/*
+*.vscode
+*.swp
+logs/*
+src/static/apps
+.extra-pi-vars.env
+.pytest_cache
+.obsidian/
+data/qr-codes
+data/qr-hashs.csv
+__pycache__
+
+# --- Release build credentials (never commit real ones) ---
+# Order matters: the negation must come after the broad patterns.
+*.env
+env/*
+!env/example.env
+provisioning_secret.txt
+provisioning_secret.py
+provisioning.py
