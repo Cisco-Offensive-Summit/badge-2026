@@ -1,6 +1,6 @@
 
 Setup of Arduino Environment:  
-Arduino --> Preferences --> Additional boards manager URLs: https://espressif.github.io/arduino-esp32/package_esp32_index.json  
+Arduino --> Settings --> Additional boards manager URLs: https://espressif.github.io/arduino-esp32/package_esp32_index.json  
 Tools --> Board --> esp32 --> ESP32S3 DEV Module  
 Port: "/dev/cu.usbmodemXXXXX"  
 USB CDC On Boot: Enabled  
