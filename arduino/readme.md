@@ -23,7 +23,7 @@ USB Mode "Hardware CDC and JTAG"
 Zigbee Mode: "Disabled"  
 Programmer "Esptool"  
 
-Libraries:  
+Be sure to install the Libraries!!! 
 (Tools --> Manage Libraries --> )
 Adafruit_BusIO  
 Adafruit_ST7735_and_ST7789_Library  
