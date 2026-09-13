@@ -1,0 +1,5 @@
+{
+  "app_name": "WiFi Info",
+  "author": "Shaunak",
+  "info": "Shows the WiFi SSID, password, and host from secrets.py"
+}
